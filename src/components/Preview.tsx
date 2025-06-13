@@ -1,0 +1,104 @@
+import { forwardRef } from "react";
+
+interface EditorState {
+  padding: number;
+  cornerRadius: number;
+  shadow: number;
+  backgroundType: "color" | "gradient" | "image";
+  backgroundColor: string;
+  backgroundGradient: string;
+  backgroundImageUrl: string;
+  backgroundBlur: number;
+}
+
+interface PreviewProps {
+  screenshot: string;
+  editorState: EditorState;
+  scale?: number;
+}
+
+const getBackgroundStyle = (editorState: EditorState) => {
+  const blurFilter =
+    editorState.backgroundBlur > 0
+      ? `blur(${editorState.backgroundBlur}px)`
+      : "none";
+
+  switch (editorState.backgroundType) {
+    case "gradient":
+      return {
+        background: editorState.backgroundGradient,
+        filter: blurFilter,
+      };
+    case "image":
+      return {
+        backgroundImage: editorState.backgroundImageUrl
+          ? `url(${editorState.backgroundImageUrl})`
+          : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        filter: blurFilter,
+      };
+    case "color":
+    default:
+      return {
+        backgroundColor: editorState.backgroundColor,
+        filter: blurFilter,
+      };
+  }
+};
+
+const getShadowStyle = (shadowValue: number): React.CSSProperties => {
+  if (shadowValue === 0) return {};
+
+  // Create custom shadow based on the shadow value
+  const shadowIntensity = shadowValue / 40; // Normalize to 0-1
+  const shadowBlur = shadowValue * 2;
+  //const shadowSpread = shadowValue * 0.5;
+
+  return {
+    boxShadow: `0 ${shadowValue}px ${shadowBlur}px rgba(0, 0, 0, ${
+      0.1 + shadowIntensity * 0.4
+    })`,
+  };
+};
+
+export const Preview = forwardRef<HTMLDivElement, PreviewProps>(
+  ({ screenshot, editorState, scale = 1 }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className="relative flex items-center justify-center rounded-lg overflow-hidden"
+        style={{
+          width: "auto",
+          height: "auto",
+          transform: `scale(${scale})`,
+          transformOrigin: "center",
+        }}
+      >
+        {/* Background Layer with Blur */}
+        <div
+          className="absolute inset-0 w-full h-full"
+          style={getBackgroundStyle(editorState)}
+        />
+
+        {/* Content Layer with Screenshot */}
+        <div
+          className="relative z-10"
+          style={{ padding: `${editorState.padding}px` }}
+        >
+          <img
+            src={screenshot}
+            alt="Captured screenshot"
+            className="object-contain"
+            style={{
+              borderRadius: `${editorState.cornerRadius}px`,
+              ...getShadowStyle(editorState.shadow),
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+);
+
+Preview.displayName = "Preview";
