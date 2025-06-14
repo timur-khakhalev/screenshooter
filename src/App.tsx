@@ -11,6 +11,7 @@ import * as htmlToImage from "html-to-image";
 function App() {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [copyButtonText, setCopyButtonText] = useState("Copy Image");
+  const [isExporting, setIsExporting] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editorState, setEditorState] = useState({
@@ -76,6 +77,12 @@ function App() {
     if (!previewRef.current) return;
 
     try {
+      // Set export state to temporarily scale to 1
+      setIsExporting(true);
+
+      // Very brief wait for re-render
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       const dataUrl = await htmlToImage.toPng(previewRef.current);
       const link = document.createElement("a");
       link.download = "screenshot.png";
@@ -85,6 +92,9 @@ function App() {
       document.body.removeChild(link);
     } catch (error) {
       console.error("Error downloading image:", error);
+    } finally {
+      // Reset export state
+      setIsExporting(false);
     }
   };
 
@@ -92,6 +102,12 @@ function App() {
     if (!previewRef.current) return;
 
     try {
+      // Set export state to temporarily scale to 1
+      setIsExporting(true);
+
+      // Very brief wait for re-render
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       const blob = await htmlToImage.toBlob(previewRef.current);
       if (blob) {
         await navigator.clipboard.write([
@@ -102,6 +118,9 @@ function App() {
       }
     } catch (error) {
       console.error("Error copying image:", error);
+    } finally {
+      // Reset export state
+      setIsExporting(false);
     }
   };
 
@@ -156,15 +175,15 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background">
       {/* Sidebar for Editor Controls */}
-      <aside className="w-80 bg-card border-r border-border overflow-y-auto">
-        <div className="p-6">
+      <aside className="w-72 bg-card border-r border-border overflow-y-auto">
+        <div className="p-4">
           {/* Logo and Title Header */}
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
               <svg
-                className="w-5 h-5 text-white"
+                className="w-4 h-4 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -179,38 +198,37 @@ function App() {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-card-foreground">
+              <h2 className="text-lg font-semibold text-card-foreground">
                 Screenshooter
               </h2>
-              <p className="text-xs text-muted-foreground">Editor Controls</p>
             </div>
           </div>
 
-          {/* Take Screenshot Button */}
-          <Button onClick={takeScreenshot} className="w-full mb-3">
-            Take Screenshot
-          </Button>
-
-          {/* Upload from File Button */}
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            variant="outline"
-            className="w-full mb-3"
-          >
-            Upload from File
-          </Button>
-
-          {/* Paste Image Button */}
-          <Button
-            variant="outline"
-            className="w-full mb-6"
-            onClick={() => {
-              // Focus the document to ensure paste events are captured
-              document.body.focus();
-            }}
-          >
-            Paste Image (Ctrl+V)
-          </Button>
+          {/* Action Buttons */}
+          <div className="space-y-2 mb-4">
+            <Button onClick={takeScreenshot} className="w-full" size="sm">
+              Take Screenshot
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                variant="outline"
+                size="sm"
+              >
+                Upload
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Focus the document to ensure paste events are captured
+                  document.body.focus();
+                }}
+              >
+                Paste
+              </Button>
+            </div>
+          </div>
 
           {/* Hidden file input */}
           <input
@@ -223,111 +241,128 @@ function App() {
 
           {/* Editor Controls - Only show when screenshot exists */}
           {screenshot && (
-            <div className="space-y-6">
-              {/* Padding Control */}
-              <div className="space-y-2">
-                <Label htmlFor="padding-slider">Padding</Label>
-                <Slider
-                  id="padding-slider"
-                  defaultValue={[editorState.padding]}
-                  max={128}
-                  step={1}
-                  onValueChange={(value: number[]) =>
-                    handleStateChange("padding", value[0])
-                  }
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  {editorState.padding}px
+            <div className="space-y-4">
+              {/* Style Controls Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Padding Control */}
+                <div className="space-y-1">
+                  <Label htmlFor="padding-slider" className="text-xs">
+                    Padding
+                  </Label>
+                  <Slider
+                    id="padding-slider"
+                    defaultValue={[editorState.padding]}
+                    max={128}
+                    step={1}
+                    onValueChange={(value: number[]) =>
+                      handleStateChange("padding", value[0])
+                    }
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    {editorState.padding}px
+                  </div>
                 </div>
-              </div>
 
-              {/* Corner Radius Control */}
-              <div className="space-y-2">
-                <Label htmlFor="corner-radius-slider">Corner Radius</Label>
-                <Slider
-                  id="corner-radius-slider"
-                  defaultValue={[editorState.cornerRadius]}
-                  max={64}
-                  step={1}
-                  onValueChange={(value: number[]) =>
-                    handleStateChange("cornerRadius", value[0])
-                  }
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  {editorState.cornerRadius}px
+                {/* Corner Radius Control */}
+                <div className="space-y-1">
+                  <Label htmlFor="corner-radius-slider" className="text-xs">
+                    Radius
+                  </Label>
+                  <Slider
+                    id="corner-radius-slider"
+                    defaultValue={[editorState.cornerRadius]}
+                    max={64}
+                    step={1}
+                    onValueChange={(value: number[]) =>
+                      handleStateChange("cornerRadius", value[0])
+                    }
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    {editorState.cornerRadius}px
+                  </div>
                 </div>
-              </div>
 
-              {/* Shadow Control */}
-              <div className="space-y-2">
-                <Label htmlFor="shadow-slider">Shadow</Label>
-                <Slider
-                  id="shadow-slider"
-                  defaultValue={[editorState.shadow]}
-                  max={40}
-                  step={1}
-                  onValueChange={(value: number[]) =>
-                    handleStateChange("shadow", value[0])
-                  }
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  Intensity: {editorState.shadow}
+                {/* Shadow Control */}
+                <div className="space-y-1">
+                  <Label htmlFor="shadow-slider" className="text-xs">
+                    Shadow
+                  </Label>
+                  <Slider
+                    id="shadow-slider"
+                    defaultValue={[editorState.shadow]}
+                    max={40}
+                    step={1}
+                    onValueChange={(value: number[]) =>
+                      handleStateChange("shadow", value[0])
+                    }
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    {editorState.shadow}
+                  </div>
                 </div>
-              </div>
 
-              {/* Background Blur Control */}
-              <div className="space-y-2">
-                <Label htmlFor="blur-slider">Background Blur</Label>
-                <Slider
-                  id="blur-slider"
-                  defaultValue={[editorState.backgroundBlur]}
-                  max={20}
-                  step={1}
-                  onValueChange={(value: number[]) =>
-                    handleStateChange("backgroundBlur", value[0])
-                  }
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  {editorState.backgroundBlur}px
+                {/* Background Blur Control */}
+                <div className="space-y-1">
+                  <Label htmlFor="blur-slider" className="text-xs">
+                    Blur
+                  </Label>
+                  <Slider
+                    id="blur-slider"
+                    defaultValue={[editorState.backgroundBlur]}
+                    max={20}
+                    step={1}
+                    onValueChange={(value: number[]) =>
+                      handleStateChange("backgroundBlur", value[0])
+                    }
+                    className="w-full"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    {editorState.backgroundBlur}px
+                  </div>
                 </div>
               </div>
 
               {/* Background Controls */}
               <div className="space-y-2">
-                <Label>Background</Label>
+                <Label className="text-xs">Background</Label>
                 <Tabs
                   value={editorState.backgroundType}
                   onValueChange={(value) =>
                     handleStateChange("backgroundType", value)
                   }
                 >
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="color">Color</TabsTrigger>
-                    <TabsTrigger value="gradient">Gradient</TabsTrigger>
-                    <TabsTrigger value="image">Image</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 h-8">
+                    <TabsTrigger value="color" className="text-xs">
+                      Color
+                    </TabsTrigger>
+                    <TabsTrigger value="gradient" className="text-xs">
+                      Gradient
+                    </TabsTrigger>
+                    <TabsTrigger value="image" className="text-xs">
+                      Image
+                    </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="color" className="space-y-2">
+                  <TabsContent value="color" className="space-y-1 mt-2">
                     <input
                       type="color"
                       value={editorState.backgroundColor}
                       onChange={(e) =>
                         handleStateChange("backgroundColor", e.target.value)
                       }
-                      className="w-full h-10 rounded border border-border cursor-pointer"
+                      className="w-full h-8 rounded border border-border cursor-pointer"
                     />
                   </TabsContent>
 
-                  <TabsContent value="gradient" className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
+                  <TabsContent value="gradient" className="space-y-1 mt-2">
+                    <div className="grid grid-cols-3 gap-1">
                       {GRADIENTS.map((gradient, index) => (
                         <div
                           key={index}
-                          className={`h-12 rounded cursor-pointer border-2 transition-colors ${
+                          className={`h-8 rounded cursor-pointer border-2 transition-colors ${
                             editorState.backgroundGradient === gradient.value
                               ? "border-primary"
                               : "border-transparent hover:border-primary"
@@ -345,40 +380,29 @@ function App() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="image" className="space-y-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="image-url">Image URL</Label>
-                      <Input
-                        id="image-url"
-                        type="url"
-                        placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
-                        value={editorState.backgroundImageUrl}
-                        onChange={(e) =>
-                          handleStateChange(
-                            "backgroundImageUrl",
-                            e.target.value
-                          )
-                        }
-                      />
-                      {editorState.backgroundImageUrl && (
-                        <div className="text-xs text-muted-foreground">
-                          Preview: The image will be used as background when you
-                          switch to image mode
-                        </div>
-                      )}
-                    </div>
+                  <TabsContent value="image" className="space-y-1 mt-2">
+                    <Input
+                      id="image-url"
+                      type="url"
+                      placeholder="Enter image URL..."
+                      value={editorState.backgroundImageUrl}
+                      onChange={(e) =>
+                        handleStateChange("backgroundImageUrl", e.target.value)
+                      }
+                      className="h-8 text-xs"
+                    />
                   </TabsContent>
                 </Tabs>
               </div>
 
               {/* Export Buttons */}
               <div className="space-y-2">
-                <Label>Export</Label>
-                <div className="space-y-2">
-                  <Button onClick={onCopy} variant="outline" className="w-full">
+                <Label className="text-xs">Export</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={onCopy} variant="outline" size="sm">
                     {copyButtonText}
                   </Button>
-                  <Button onClick={onDownload} className="w-full">
+                  <Button onClick={onDownload} size="sm">
                     Download
                   </Button>
                 </div>
@@ -389,13 +413,14 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex items-center justify-center p-6 overflow-auto">
+      <main className="flex-1 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900">
         {screenshot ? (
-          <div className="w-full h-full min-w-fit min-h-fit">
+          <div className="w-full h-full flex items-center justify-center">
             <Preview
               ref={previewRef}
               screenshot={screenshot}
               editorState={editorState}
+              isExporting={isExporting}
             />
           </div>
         ) : (

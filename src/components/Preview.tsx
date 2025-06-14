@@ -15,6 +15,7 @@ interface PreviewProps {
   screenshot: string;
   editorState: EditorState;
   scale?: number;
+  isExporting?: boolean;
 }
 
 const getBackgroundStyle = (editorState: EditorState) => {
@@ -63,38 +64,48 @@ const getShadowStyle = (shadowValue: number): React.CSSProperties => {
 };
 
 export const Preview = forwardRef<HTMLDivElement, PreviewProps>(
-  ({ screenshot, editorState, scale = 1 }, ref) => {
+  ({ screenshot, editorState, scale = 0.8, isExporting }, ref) => {
+    const actualScale = isExporting ? 1 : scale;
+
     return (
       <div
-        ref={ref}
-        className="relative flex items-center justify-center rounded-lg overflow-hidden"
+        className="relative flex items-center justify-center"
         style={{
-          width: "auto",
-          height: "auto",
-          transform: `scale(${scale})`,
+          width: "fit-content",
+          height: "fit-content",
+          transform: `scale(${actualScale})`,
           transformOrigin: "center",
         }}
       >
-        {/* Background Layer with Blur */}
         <div
-          className="absolute inset-0 w-full h-full"
-          style={getBackgroundStyle(editorState)}
-        />
-
-        {/* Content Layer with Screenshot */}
-        <div
-          className="relative z-10"
-          style={{ padding: `${editorState.padding}px` }}
+          ref={ref}
+          className="relative flex items-center justify-center rounded-lg overflow-hidden"
+          style={{
+            width: "auto",
+            height: "auto",
+          }}
         >
-          <img
-            src={screenshot}
-            alt="Captured screenshot"
-            className="object-contain"
-            style={{
-              borderRadius: `${editorState.cornerRadius}px`,
-              ...getShadowStyle(editorState.shadow),
-            }}
+          {/* Background Layer with Blur */}
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={getBackgroundStyle(editorState)}
           />
+
+          {/* Content Layer with Screenshot */}
+          <div
+            className="relative z-10"
+            style={{ padding: `${editorState.padding}px` }}
+          >
+            <img
+              src={screenshot}
+              alt="Captured screenshot"
+              className="object-contain"
+              style={{
+                borderRadius: `${editorState.cornerRadius}px`,
+                ...getShadowStyle(editorState.shadow),
+              }}
+            />
+          </div>
         </div>
       </div>
     );
