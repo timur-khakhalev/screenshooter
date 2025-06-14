@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "./components/ui/button";
 import { Slider } from "./components/ui/slider";
 import { Label } from "./components/ui/label";
@@ -12,16 +12,17 @@ function App() {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [copyButtonText, setCopyButtonText] = useState("Copy Image");
   const previewRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editorState, setEditorState] = useState({
     padding: 64,
     cornerRadius: 16,
     shadow: 8,
-    backgroundType: "color" as "color" | "gradient" | "image",
+    backgroundType: "gradient" as "color" | "gradient" | "image",
     backgroundColor: "#3b82f6",
     backgroundGradient: "linear-gradient(to right, #833ab4, #fd1d1d, #fcb045)",
     backgroundImageUrl:
       "https://512pixels.net/wp-content/uploads/2025/06/15-Sequoia-Light-thumbnail.jpg",
-    backgroundBlur: 0,
+    backgroundBlur: 2,
   });
 
   const handleStateChange = (
@@ -30,6 +31,46 @@ function App() {
   ) => {
     setEditorState((prevState) => ({ ...prevState, [key]: value }));
   };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setScreenshot(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaste = (event: ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              setScreenshot(result);
+            };
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("paste", handlePaste);
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, []);
 
   const onDownload = async () => {
     if (!previewRef.current) return;
@@ -119,14 +160,66 @@ function App() {
       {/* Sidebar for Editor Controls */}
       <aside className="w-80 bg-card border-r border-border overflow-y-auto">
         <div className="p-6">
-          <h2 className="text-xl font-semibold text-card-foreground mb-4">
-            Editor Controls
-          </h2>
+          {/* Logo and Title Header */}
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-card-foreground">
+                Screenshooter
+              </h2>
+              <p className="text-xs text-muted-foreground">Editor Controls</p>
+            </div>
+          </div>
 
           {/* Take Screenshot Button */}
-          <Button onClick={takeScreenshot} className="w-full mb-6">
+          <Button onClick={takeScreenshot} className="w-full mb-3">
             Take Screenshot
           </Button>
+
+          {/* Upload from File Button */}
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            variant="outline"
+            className="w-full mb-3"
+          >
+            Upload from File
+          </Button>
+
+          {/* Paste Image Button */}
+          <Button
+            variant="outline"
+            className="w-full mb-6"
+            onClick={() => {
+              // Focus the document to ensure paste events are captured
+              document.body.focus();
+            }}
+          >
+            Paste Image (Ctrl+V)
+          </Button>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            style={{ display: "none" }}
+          />
 
           {/* Editor Controls - Only show when screenshot exists */}
           {screenshot && (
@@ -306,8 +399,39 @@ function App() {
             />
           </div>
         ) : (
-          <div className="text-muted-foreground text-lg">
-            Your screenshot will appear here
+          <div className="flex flex-col items-center justify-center space-y-6 text-center">
+            {/* Logo */}
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg
+                className="w-12 h-12 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+
+            {/* Title and Description */}
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-foreground">
+                Screenshooter
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-md">
+                Capture, customize, and share beautiful screenshots with style
+              </p>
+            </div>
+
+            {/* Call to Action */}
+            <div className="text-muted-foreground">
+              Click "Take Screenshot" to get started
+            </div>
           </div>
         )}
       </main>
