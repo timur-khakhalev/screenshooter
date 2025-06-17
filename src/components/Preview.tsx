@@ -18,32 +18,40 @@ interface PreviewProps {
   isExporting?: boolean;
 }
 
-const getBackgroundStyle = (editorState: EditorState) => {
-  const blurFilter =
-    editorState.backgroundBlur > 0
-      ? `blur(${editorState.backgroundBlur}px)`
-      : "none";
+const getBackgroundStyle = (editorState: EditorState): React.CSSProperties => {
+  const blur = editorState.backgroundBlur;
+  const blurFilter = blur > 0 ? `blur(${blur}px)` : "none";
+  const margin = blur * 2;
+
+  const baseStyle: React.CSSProperties = {
+    position: "absolute",
+    top: -margin,
+    right: -margin,
+    bottom: -margin,
+    left: -margin,
+    filter: blurFilter,
+  };
 
   switch (editorState.backgroundType) {
     case "gradient":
       return {
+        ...baseStyle,
         background: editorState.backgroundGradient,
-        filter: blurFilter,
       };
     case "image":
       return {
+        ...baseStyle,
         backgroundImage: editorState.backgroundImageUrl
           ? `url(${editorState.backgroundImageUrl})`
           : "none",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        filter: blurFilter,
       };
     case "color":
     default:
       return {
+        ...baseStyle,
         backgroundColor: editorState.backgroundColor,
-        filter: blurFilter,
       };
   }
 };
