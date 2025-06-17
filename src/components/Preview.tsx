@@ -1,15 +1,6 @@
 import { forwardRef } from "react";
-
-interface EditorState {
-  padding: number;
-  cornerRadius: number;
-  shadow: number;
-  backgroundType: "color" | "gradient" | "image";
-  backgroundColor: string;
-  backgroundGradient: string;
-  backgroundImageUrl: string;
-  backgroundBlur: number;
-}
+import type { EditorState } from "@/types";
+import { BlurryBackground } from "./BlurryBackground";
 
 interface PreviewProps {
   screenshot: string;
@@ -18,42 +9,6 @@ interface PreviewProps {
   isExporting?: boolean;
 }
 
-const getBackgroundStyle = (editorState: EditorState): React.CSSProperties => {
-  const blur = editorState.backgroundBlur;
-  const offset = blur * 2;
-
-  const baseStyle: React.CSSProperties = {
-    position: "absolute",
-    top: -offset,
-    bottom: -offset,
-    left: -offset,
-    right: -offset,
-    filter: blur > 0 ? `blur(${blur}px)` : "none",
-  };
-
-  switch (editorState.backgroundType) {
-    case "gradient":
-      return {
-        ...baseStyle,
-        background: editorState.backgroundGradient,
-      };
-    case "image":
-      return {
-        ...baseStyle,
-        backgroundImage: editorState.backgroundImageUrl
-          ? `url(${editorState.backgroundImageUrl})`
-          : "none",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      };
-    case "color":
-    default:
-      return {
-        ...baseStyle,
-        backgroundColor: editorState.backgroundColor,
-      };
-  }
-};
 
 const getShadowStyle = (shadowValue: number): React.CSSProperties => {
   if (shadowValue === 0) return {};
@@ -93,10 +48,7 @@ export const Preview = forwardRef<HTMLDivElement, PreviewProps>(
           }}
         >
           {/* Background Layer with Blur */}
-          <div
-            className="absolute inset-0 w-full h-full"
-            style={getBackgroundStyle(editorState)}
-          />
+          <BlurryBackground editorState={editorState} />
 
           {/* Content Layer with Screenshot */}
           <div
