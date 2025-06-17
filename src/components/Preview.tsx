@@ -19,9 +19,16 @@ interface PreviewProps {
 }
 
 const getBackgroundStyle = (editorState: EditorState): React.CSSProperties => {
+  const blur = editorState.backgroundBlur;
+  const offset = blur * 2;
+
   const baseStyle: React.CSSProperties = {
     position: "absolute",
-    inset: 0,
+    top: -offset,
+    bottom: -offset,
+    left: -offset,
+    right: -offset,
+    filter: blur > 0 ? `blur(${blur}px)` : "none",
   };
 
   switch (editorState.backgroundType) {
@@ -102,10 +109,6 @@ export const Preview = forwardRef<HTMLDivElement, PreviewProps>(
               className="object-contain"
               style={{
                 borderRadius: `${editorState.cornerRadius}px`,
-                filter:
-                  editorState.backgroundBlur > 0
-                    ? `blur(${editorState.backgroundBlur}px)`
-                    : "none",
                 ...getShadowStyle(editorState.shadow),
               }}
             />
